@@ -32,26 +32,5 @@ fprintf(fid,'matcempath = ''%s'';\n',matcemroot);
 fclose(fid);
 savepath
 
-
-% Compile mex files
-cd(fullfile(cwd,'src'));
-copyfile('*.c',fullfile(cwd,'bin'))
-
-cd(fullfile(cwd,'bin'));
-fprintf('\n2. Compile mex -O Files\n')
-cd([cwd filesep 'bin'])
-
-try
-    fprintf('Compiling computeFirstColumn2D.c\n')
-    mex -O first_column2d_mex.c
-    fprintf('Compiling computeR12k2D.c\n');
-    mex -O compute_R12k_2d_mex.c
-    fprintf('Compiling computeR122D_mex.c\n');
-    mex -O compute_R12_2d_mex.c
-    
-catch err
-    cd ..
-    error('mex -O compile error')
-end
 clear all
 
