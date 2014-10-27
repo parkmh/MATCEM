@@ -1,2 +1,2 @@
 function ver = cemversion
-ver = 'CEMVER'; 
+ver = 'v.0.1'; 
