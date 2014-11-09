@@ -20,4 +20,6 @@ If you find a bug, either in the code or the documentation, we are interested in
 - Minho Park <min.park@nottingham.ac.uk>
 - Website : https://www.maths.nottingham.ac.uk/personal/pmzmp/
 
+References
+----------
 * [1] C.R.DIETRICH AND G.NEWSAM, Fast and exact simulation of stationary Gaussian processes through circulant embedding of the covariance matrix, SIAM J. SCI. COMPUT., 18 (1997), pp. 1088-1107
