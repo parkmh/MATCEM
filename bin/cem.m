@@ -1,6 +1,6 @@
 classdef cem < handle
     %CEM Circulant Embedding Method Class
-    %   자세한 설명 위치
+    %   todo : conditional random field generation
     
     properties (SetAccess = private)
         CEMOPT 		% option file
@@ -12,6 +12,7 @@ classdef cem < handle
 		onesdim 	% 3-by-1 vector with ones for valid dimensions
 		isEven = 0;
 		tempZ
+        R = [];     % Covariance matrix (this is for debugging)
     end
     
     methods
@@ -55,7 +56,42 @@ classdef cem < handle
 		function z = generate_vector(obj)
 			z = generate_matrix(obj);
 			z = z(:);
-		end
+        end
+        
+        function build_cov(obj)
+            obj.R = zeros(prod(obj.n));
+            l = obj.CEMOPT.get('corrlen');
+			s2 = obj.CEMOPT.get('sigma')^2;
+			switch (obj.CEMOPT.get('norm'))
+				case {'L1'}
+					lnorm = 1;
+				case {'L2'}
+					lnorm = 2;
+			end
+
+            switch obj.CEMOPT.get('dim')
+                case 1
+                    x = [0:obj.h(1):obj.h(1)*(obj.n(1)-1)]';
+                case 2
+                    x = [0:obj.h(1):obj.h(1)*(obj.n(1)-1)];
+                    y = [0:obj.h(2):obj.h(2)*(obj.n(2)-1)];
+                    [Y, X] = meshgrid(x,y);
+                    x = [X(:) Y(:)];
+                case 3
+                    x = [0:obj.h(1):obj.h(1)*(obj.n(1)-1)];
+                    y = [0:obj.h(2):obj.h(2)*(obj.n(2)-1)];
+                    z = [0:obj.h(3):obj.h(3)*(obj.n(3)-1)];
+                    [Z, Y, X] = meshgrid(x,y,z);
+                    x = [X(:) Y(:) Z(:)];
+            end
+            
+            for i = 1 : size(x,1)
+                for j = 1 : size(x,1)
+                    obj.R(i,j) = exp_covf(norm(x(i,:)-x(j,:),lnorm),l,s2);
+                end
+            end
+            
+        end
 
 
 	end
@@ -64,13 +100,14 @@ classdef cem < handle
     	function decomposition(obj)
 			fprintf('[CEM Decomposition]')
 			obj.c = get_first_row(obj);
-			eig_C = fftn(obj.c);
+
+            eig_C = real(fftn(obj.c));
 		    nnev = nnz(eig_C<0);
 			while nnev > 0
-				disp(nnev)
+% 				disp(nnev)
 				increase_m(obj,ceil(log10(nnev)));
 				obj.c = get_first_row(obj);
-				eig_C = fftn(obj.c);
+				eig_C = real(fftn(obj.c));
 				nnev = nnz(eig_C<0);
 			end
 			obj.L = sqrt(eig_C/prod(obj.m));
@@ -83,7 +120,7 @@ classdef cem < handle
 		function c = get_first_row(obj)
 			c = zeros(obj.m);
 			l = obj.CEMOPT.get('corrlen');
-			s2 = obj.CEMOPT.get('sigma');
+			s2 = obj.CEMOPT.get('sigma')^2;
 			switch (obj.CEMOPT.get('norm'))
 				case {'L1'}
 					lnorm = 1;
