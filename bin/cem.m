@@ -13,6 +13,8 @@ classdef cem < handle
 		isEven = 0;
 		tempZ
         R = [];     % Covariance matrix (this is for debugging)
+        distf
+        covf
     end
     
     methods
@@ -26,6 +28,8 @@ classdef cem < handle
 				onesdim(i) = 1;
 			end
 			CEM.onesdim = onesdim;
+            CEM.distf = str2func(CEMOPT.get('distfun'));
+            CEM.covf = str2func(CEMOPT.get('covfun'));
 			m = [1 1 1];
 			m(find(n>1)) = n(find(n>1))*2;
 			CEM.m = m;
@@ -60,14 +64,9 @@ classdef cem < handle
         
         function build_cov(obj)
             obj.R = zeros(prod(obj.n));
-            l = obj.CEMOPT.get('corrlen');
-			s2 = obj.CEMOPT.get('sigma')^2;
-			switch (obj.CEMOPT.get('norm'))
-				case {'L1'}
-					lnorm = 1;
-				case {'L2'}
-					lnorm = 2;
-			end
+            
+            s2 = obj.CEMOPT.get('sigma')^2;
+			
 
             switch obj.CEMOPT.get('dim')
                 case 1
@@ -87,7 +86,7 @@ classdef cem < handle
             
             for i = 1 : size(x,1)
                 for j = 1 : size(x,1)
-                    obj.R(i,j) = exp_covf(norm(x(i,:)-x(j,:),lnorm),l,s2);
+                    obj.R(i,j) = s2*obj.covf(obj.distf(x(i,:)-x(j,:)));
                 end
             end
             
@@ -98,19 +97,20 @@ classdef cem < handle
     
 	methods (Access = private)
     	function decomposition(obj)
-			fprintf('[CEM Decomposition]')
+			fprintf('[CEM Decomposition].........')
 			obj.c = get_first_row(obj);
 
             eig_C = real(fftn(obj.c));
 		    nnev = nnz(eig_C<0);
 			while nnev > 0
-% 				disp(nnev)
+ 				disp(nnev)
 				increase_m(obj,ceil(log10(nnev)));
 				obj.c = get_first_row(obj);
 				eig_C = real(fftn(obj.c));
 				nnev = nnz(eig_C<0);
 			end
 			obj.L = sqrt(eig_C/prod(obj.m));
+            fprintf('Done\n')
 		end
 
 		function increase_m(obj,inc)
@@ -119,23 +119,16 @@ classdef cem < handle
 
 		function c = get_first_row(obj)
 			c = zeros(obj.m);
-			l = obj.CEMOPT.get('corrlen');
 			s2 = obj.CEMOPT.get('sigma')^2;
-			switch (obj.CEMOPT.get('norm'))
-				case {'L1'}
-					lnorm = 1;
-				case {'L2'}
-					lnorm = 2;
-			end
 
 			for k = 1 : obj.m(3)
 				for j = 1 : obj.m(2)
 					for i = 1 : obj.m(1)
-						d = norm([mirror(obj.m(1)*obj.h(1),obj.h(1)*(i-1)) ...
+						d = obj.distf([mirror(obj.m(1)*obj.h(1),obj.h(1)*(i-1)) ...
 						          mirror(obj.m(2)*obj.h(2),obj.h(2)*(j-1)) ...
 								  mirror(obj.m(3)*obj.h(3),obj.h(3)*(k-1)) ...
-								  ], lnorm);
-						c(i,j,k) = exp_covf(d,l,s2);
+								  ]);
+						c(i,j,k) = s2*obj.covf(obj.distf(d));
 					end
 				end
 			end
@@ -150,8 +143,4 @@ function h = mirror(m,x)
 	else
 		h = m - x;
 	end
-end
-
-function r = exp_covf(d,l,sigma2)
-	r = sigma2*exp(-d/l);
 end

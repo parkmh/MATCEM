@@ -1,6 +1,6 @@
 function val = default_opts_cem(varargin)
 
-allfields = {'dim';'N';'h';'norm';'corrlen';'sigma'};
+allfields = {'dim';'N';'h';'sigma';'covfun';'distfun'};
 % Print out all default values
 if (nargin == 0) && (nargout == 0)
   	fprintf('    __  ______  ____________________  ___ \n')
@@ -38,11 +38,11 @@ switch lower(varargin{1})
 	case {'h'}
 		val = [1/8 1/8 0];
 		return
-	case {'norm'}
-		val = 'L2';
+	case {'distfun'}
+		val = '@(x)l2dist(x,[0.3, 0.3, 0.3])';
 		return
-	case {'corrlen'}
-		val = 0.3;
+	case {'covfun'}
+		val = 'exp_cov';
 	case {'sigma'}
 		val = 1;
 	otherwise
